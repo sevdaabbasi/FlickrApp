@@ -7,26 +7,27 @@
 
 import UIKit
 
-class PhotoTableViewController: UITableViewController, UISearchBarDelegate, UISearchResultsUpdating{
+
+
+
+
+class PhotoTableViewController: UITableViewController, UISearchBarDelegate, UISearchResultsUpdating {
+    
+    private var characters: [Character] = []
     
     func updateSearchResults(for searchController: UISearchController) {
-        guard let text = searchController.searchBar.text else{return}
-        if text.count > 2{
+        guard let text = searchController.searchBar.text else { return }
+        if text.count > 2 {
             print(text)
             searchPhotos(with: text)
         }
-
     }
-    
-    //private var response: PhotosResponse?
-    
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         setupSearchController()
         fetchRecentPhotos()
-  
     }
 
     // UISerachControl işlemlerini atama işlemi
@@ -41,63 +42,84 @@ class PhotoTableViewController: UITableViewController, UISearchBarDelegate, UISe
     
     }
     
-    private func fetchRecentPhotos(){
-        guard let url = URL(string: "https://rickandmortyapi.com/api/character") else{return}
-        //Data task bizden aslında bir request bekliyor
-        let reguest = URLRequest(url: url)
+    private func fetchRecentPhotos() {
+        guard let url = URL(string: "https://rickandmortyapi.com/api/character") else { return }
+        let request = URLRequest(url: url)
         
-        URLSession.shared.dataTask(with: reguest) { data, response, error in
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             if let error = error {
                 debugPrint(error)
                 return
             }
-            // eğer error yoksa
-            if let data = data{
-                // data yı json a çevir
-                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-                
-                print(json)
+            
+            if let data = data {
+                do {
+                    let decoder = JSONDecoder()
+                    let response = try decoder.decode(CharacterResponse.self, from: data)
+                    DispatchQueue.main.async {
+                        self?.characters = response.results
+                        self?.tableView.reloadData()
+                    }
+                } catch {
+                    print("Decoding error: \(error)")
+                }
             }
         }.resume()
     }
     
-    private func searchPhotos(with text: String){
-        guard let url = URL(string: "https://rickandmortyapi.com/api/character") else{return}
-        //Data task bizden aslında bir request bekliyor
-        let reguest = URLRequest(url: url)
+    private func searchPhotos(with text: String) {
+        guard let url = URL(string: "https://rickandmortyapi.com/api/character") else { return }
+        let request = URLRequest(url: url)
         
-        URLSession.shared.dataTask(with: reguest) { data, response, error in
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             if let error = error {
                 debugPrint(error)
                 return
             }
-            // eğer error yoksa
-            if let data = data{
-                // data yı json a çevir
-                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-                
-                print(json)
+            
+            if let data = data {
+                do {
+                    let decoder = JSONDecoder()
+                    let response = try decoder.decode(CharacterResponse.self, from: data)
+                    DispatchQueue.main.async {
+                        self?.characters = response.results
+                        self?.tableView.reloadData()
+                    }
+                } catch {
+                    print("Decoding error: \(error)")
+                }
             }
         }.resume()
     }
+
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
-        // #warning Incomplete implementation, return the number of sections
         return 1
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        // #warning Incomplete implementation, return the number of rows
-        return 10
+        return characters.count
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath) as! PhotoTableViewCell
-        cell.ownerImageView.backgroundColor = .darkGray
-        cell.ownerNameLabel.text = "Name"
-        cell.photoImageView.backgroundColor = .gray
-        cell.titleName.text = "Title Name"
+        let character = characters[indexPath.row]
+        
+        cell.ownerNameLabel.text = character.name
+        cell.titleName.text = character.name
+        
+        // Load image from URL
+        if let imageUrl = URL(string: character.image) {
+            URLSession.shared.dataTask(with: imageUrl) { data, response, error in
+                if let data = data, let image = UIImage(data: data) {
+                    DispatchQueue.main.async {
+                        cell.photoImageView.image = image
+                    }
+                }
+            }.resume()
+        }
+        
         return cell
     }
     // MARK: - Navigation

@@ -14,7 +14,7 @@ class PhotoDetailViewController: UIViewController {
     @IBOutlet weak var ownerImageView: UIImageView!
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
         title = "Photo Detail"
        // imageView.backgroundColor = .gray
        // ownerImageView.backgroundColor = .darkGray
